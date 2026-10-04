@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Build progress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E8EDF1; --panel:#F6F8FA; --ink:#17212B; --muted:#5A6977; --rule:#B4BEC7; --track:#C9D1D8;
+  --sonnet:#4B3FB8; --opus:#24305E; --sol:#0A7C76; --astra:#9C2F6C; --you:#B8730F; --stop:#BF3326; --done:#17212B;
+  --sans:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#131A21; --panel:#1B242D; --ink:#E6ECF1; --muted:#97A5B2; --rule:#3A4754; --track:#33404C;
+  --sonnet:#8F86F0; --opus:#9AA8E6; --sol:#3CC3B8; --astra:#E27AB3; --you:#E8A944; --stop:#F06A5C; --done:#E6ECF1;
+}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.5 var(--sans);
+  padding:max(24px,env(safe-area-inset-top)) clamp(16px,4vw,48px) max(40px,env(safe-area-inset-bottom))}
+h1,h2,h3{font-family:var(--cond);font-weight:600;margin:0;letter-spacing:.01em}
+h1{font-size:clamp(30px,4vw,44px);line-height:1.05}
+h2{font-size:22px}
+.wrap{max-width:1240px;margin:0 auto}
+
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.sub{color:var(--muted);margin-top:4px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:var(--panel);border:1px solid var(--rule)}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pill.live i{background:var(--sol)}
+.pill.warn{border-color:var(--stop);color:var(--stop)} .pill.warn i{background:var(--stop)}
+.demo{margin:18px 0 0;padding:10px 14px;border-left:3px solid var(--you);background:var(--panel);color:var(--muted);font-size:14px}
+.demo code{color:var(--ink)}
+
+/* The line: the one bold element */
+.line{position:relative;margin:36px 0 40px;display:grid;grid-template-columns:repeat(6,1fr)}
+.line::before{content:"";position:absolute;left:calc(100%/12);right:calc(100%/12);top:21px;height:6px;border-radius:3px;background:var(--track)}
+.line .fill{position:absolute;left:calc(100%/12);top:21px;height:6px;border-radius:3px;background:var(--done);transition:width .6s ease}
+.station{position:relative;text-align:center}
+.station .ring{width:48px;height:48px;margin:0 auto;border-radius:50%;background:var(--bg);border:6px solid var(--track);display:grid;place-items:center}
+.station.done .ring{border-color:var(--done);background:var(--done)}
+.station.done .ring::after{content:"";width:12px;height:7px;border-left:3px solid var(--bg);border-bottom:3px solid var(--bg);transform:translateY(-2px) rotate(-45deg)}
+.station.active .ring{border-color:var(--opus);box-shadow:0 0 0 6px color-mix(in srgb,var(--opus) 22%,transparent)}
+.station.active .ring::after{content:"";width:14px;height:14px;border-radius:50%;background:var(--opus)}
+.station.blocked .ring{border-color:var(--stop)}
+.station.blocked .ring::after{content:"";width:14px;height:4px;background:var(--stop);border-radius:2px}
+.station .name{font-family:var(--cond);font-size:19px;font-weight:600;margin-top:10px;line-height:1.1}
+.station .when{font-size:13px;color:var(--muted)}
+.station.pending .name{color:var(--muted);font-weight:500}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:32px;align-items:start}
+@media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+.linescroll{overflow-x:auto;margin:36px 0 40px}
+.linescroll .line{margin:0;min-width:620px;padding-bottom:4px}
+
+section+section{margin-top:32px}
+.sechead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:50%}
+
+.board{background:var(--panel);border:1px solid var(--rule);border-radius:10px;overflow-x:auto}
+.cols,.row{display:grid;grid-template-columns:minmax(220px,1.6fr) repeat(5,minmax(72px,1fr)) minmax(104px,.8fr);align-items:center;min-width:760px}
+.cols{padding:10px 16px 6px;font-family:var(--cond);font-size:15px;color:var(--muted);border-bottom:1px solid var(--rule)}
+.cols div{text-align:center} .cols div:first-child,.cols div:last-child{text-align:left}
+.cols small{display:block;font-family:var(--sans);font-size:12px}
+.group{padding:8px 16px 2px;font-size:13px;color:var(--muted);border-top:1px solid var(--rule)}
+.group:first-of-type{border-top:0}
+.row{padding:10px 16px;position:relative}
+.row+.row{border-top:1px dashed color-mix(in srgb,var(--rule) 60%,transparent)}
+.tid{display:flex;gap:10px;align-items:baseline;min-width:0}
+.tid b{font-family:var(--cond);font-size:18px;font-weight:700;flex:none}
+.tid span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tid em{font-style:normal;font-size:12px;color:var(--muted);border:1px solid var(--rule);border-radius:4px;padding:0 5px;flex:none}
+.cell{position:relative;height:28px;display:grid;place-items:center}
+.cell::before{content:"";position:absolute;left:0;right:0;top:50%;height:3px;margin-top:-1.5px;background:var(--track)}
+.cell:first-of-type::before{left:50%}
+.cell.last::before{right:50%}
+.cell.passed::before{background:var(--done)}
+.cell.reach::before{background:linear-gradient(90deg,var(--done) 50%,var(--track) 50%)}
+.cell.first.reach::before{background:var(--track)}
+.dot{position:relative;width:12px;height:12px;border-radius:50%;background:var(--panel);border:3px solid var(--track)}
+.passed .dot,.reach.done .dot{background:var(--done);border-color:var(--done)}
+.cur .dot{width:20px;height:20px;border-width:4px;border-color:var(--c);background:var(--panel)}
+.cur .dot::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--c)}
+.cur.working .dot{animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 40%,transparent)}50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--c) 0%,transparent)}}
+@media (prefers-reduced-motion:reduce){.cur.working .dot{animation:none}}
+.cur.halt .dot{border-color:var(--stop)} .cur.halt .dot::after{background:var(--stop)}
+.tag{font-size:13px;color:var(--muted)}
+.tag strong{font-weight:600;color:var(--ink)}
+.tag.stop{color:var(--stop)} .tag.stop strong{color:var(--stop)}
+.rounds{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:12px}
+.rounds a{white-space:nowrap;color:inherit;text-decoration:none;border-radius:4px;padding:0 5px;border:1px solid var(--rule)}
+.rounds a.fail{border-color:var(--stop);color:var(--stop)}
+.rounds a.pass{border-color:var(--sol);color:var(--sol)}
+.note{grid-column:2 / -1;font-size:13px;color:var(--stop);margin-top:2px}
+.empty{padding:28px 16px;color:var(--muted)}
+.empty code,.side code{font-size:13px;background:var(--bg);padding:1px 6px;border-radius:4px;color:var(--ink)}
+
+.side{display:flex;flex-direction:column;gap:24px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:16px}
+.card h2{margin-bottom:8px}
+.needs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.needs li{border-left:3px solid var(--you);padding:2px 0 2px 10px}
+.needs li.stop{border-color:var(--stop)}
+.needs b{font-family:var(--cond);font-size:17px}
+.needs p{margin:0;font-size:14px;color:var(--muted)}
+.log{list-style:none;margin:0;padding:0;font-size:14px;max-height:520px;overflow:auto}
+.log li{display:grid;grid-template-columns:44px 10px 1fr;gap:8px;padding:6px 0;border-top:1px solid color-mix(in srgb,var(--rule) 50%,transparent)}
+.log li:first-child{border-top:0}
+.log time{color:var(--muted);font-variant-numeric:tabular-nums}
+.log i{width:8px;height:8px;border-radius:50%;margin-top:7px;background:var(--muted)}
+.route{font-size:14px;display:grid;gap:6px}
+.route div{display:flex;flex-direction:column}
+.route span:last-child{color:var(--muted)}
+:focus-visible{outline:3px solid var(--sonnet);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="project">Build progress</h1>
+      <div class="sub" id="subtitle">Idea → spec → tickets → design → build → ship</div>
+    </div>
+    <div class="meta" id="meta"></div>
+  </header>
+  <div id="demo" class="demo" hidden>Showing sample data. To see your own build, run <code>node scripts/wf.mjs dash --open</code> from the project root.</div>
+
+  <div class="linescroll"><nav class="line" id="line" aria-label="Phases"></nav></div>
+
+  <div class="grid">
+    <main>
+      <section>
+        <div class="sechead">
+          <h2>Tickets</h2>
+          <div class="legend" aria-label="Who is working">
+            <span><i style="background:var(--sonnet)"></i>Sonnet builds/fixes</span>
+            <span><i style="background:var(--sol)"></i>Sol reviews</span>
+            <span><i style="background:var(--astra)"></i>Astra attacks</span>
+            <span><i style="background:var(--you)"></i>Waiting on you</span>
+            <span><i style="background:var(--stop)"></i>Stopped</span>
+          </div>
+        </div>
+        <div class="board" id="tickets"></div>
+      </section>
+      <section>
+        <div class="sechead"><h2>Merge batches</h2></div>
+        <div class="board" id="batches"></div>
+      </section>
+    </main>
+    <aside class="side">
+      <div class="card"><h2>Waiting on you</h2><ul class="needs" id="needs"></ul></div>
+      <div class="card"><h2>Review routing</h2><div class="route" id="route"></div></div>
+      <div class="card"><h2>Activity</h2><ul class="log" id="log"></ul></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const ACTOR = {opus:'--opus',sonnet:'--sonnet',sol:'--sol',astra:'--astra',you:'--you'};
+const T_COLS = [
+  ['Queued',''], ['Build','Sonnet'], ['Code review','Sol'], ['Fix','Sonnet'], ['Ready','']
+];
+const B_COLS = [
+  ['Integrate','Sonnet'], ['Adversarial','Astra'], ['Fix','Sonnet'], ['Your call','You'], ['Merged','']
+];
+const T_IDX = {queued:0,blocked:0,building:1,'code-review':2,fixing:3,ready:4,batched:4,merged:4};
+const T_ACT = {building:'sonnet','code-review':'sol',fixing:'sonnet'};
+const B_IDX = {integrating:0,'adversarial-review':1,fixing:2,'human-gate':3,merged:4};
+const B_ACT = {integrating:'sonnet','adversarial-review':'astra',fixing:'sonnet','human-gate':'you'};
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ago = iso => { if(!iso) return ''; const s=(Date.now()-new Date(iso))/1000;
+  if(s<60) return `${Math.max(1,Math.round(s))}s ago`; if(s<3600) return `${Math.round(s/60)}m ago`;
+  if(s<86400) return `${Math.round(s/3600)}h ago`; return `${Math.round(s/86400)}d ago`; };
+const hhmm = iso => new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false});
+
+function track(cols, idx, opts){
+  // opts: {actor, halted, complete}
+  return cols.map((_, i) => {
+    const cls = ['cell'];
+    if (i===0) cls.push('first');
+    if (i===cols.length-1) cls.push('last');
+    if (opts.complete || i < idx) cls.push('passed');
+    else if (i === idx) { cls.push('reach','cur'); if (opts.halted) cls.push('halt'); else if (opts.actor && opts.actor!=='you') cls.push('working'); }
+    const c = opts.actor ? `var(${ACTOR[opts.actor]})` : 'var(--done)';
+    return `<div class="${cls.join(' ')}" style="--c:${c}"><span class="dot"></span></div>`;
+  }).join('');
+}
+
+function roundsHtml(reviews, kind){
+  const rs = (reviews||[]).filter(r => r.kind===kind);
+  if(!rs.length) return '';
+  return `<div class="rounds">${rs.map(r=>`<a class="${r.verdict==='PASS'?'pass':'fail'}" title="${esc(r.file)}">r${r.n} ${r.verdict==='PASS'?'✓':'✗'+(r.blocking??'')}</a>`).join('')}</div>`;
+}
+
+function renderTickets(st){
+  const el = document.getElementById('tickets');
+  const ents = Object.entries(st.tickets||{});
+  if(!ents.length){ el.innerHTML = `<div class="empty">No tickets yet. Start with <code>/wf-idea</code>, then register tickets with <code>wf.mjs ticket add</code>.</div>`; return; }
+  const head = `<div class="cols"><div>Ticket</div>${T_COLS.map(([n,w])=>`<div>${n}<small>${w}</small></div>`).join('')}<div>Status</div></div>`;
+  const groups = {};
+  ents.forEach(([id,t]) => (groups[t.frontier||'Unplanned'] ||= []).push([id,t]));
+  const body = Object.keys(groups).sort().map(g => {
+    const rows = groups[g].sort(([a],[b])=>a.localeCompare(b)).map(([id,t]) => {
+      const halted = t.stage==='escalated';
+      const lastReview = (t.reviews||[]).at(-1);
+      const idx = halted ? (lastReview ? 2 : 1) : (T_IDX[t.stage] ?? 0);
+      const complete = ['batched','merged'].includes(t.stage);
+      const actor = halted ? null : T_ACT[t.stage];
+      let tag = '';
+      if (halted) tag = `<div class="tag stop"><strong>Stopped</strong></div>`;
+      else if (t.stage==='merged') tag = `<div class="tag"><strong>Merged</strong>${t.batch?` via ${esc(t.batch)}`:''}</div>`;
+      else if (t.stage==='batched') tag = `<div class="tag">In <strong>${esc(t.batch||'batch')}</strong></div>`;
+      else if (t.round) tag = `<div class="tag">Round <strong>${t.round.n}/${t.round.max}</strong></div>`;
+      else if (t.stage==='queued') {
+        const waiting = (t.blockedBy||[]).filter(b => !['ready','batched','merged'].includes(st.tickets[b]?.stage));
+        tag = `<div class="tag">${waiting.length?`Waits on ${esc(waiting.join(', '))}`:'Unblocked'}</div>`;
+      } else tag = `<div class="tag">${esc(ago(t.updated))}</div>`;
+      const label = `${id} ${t.title}: ${halted?'stopped, needs you':t.stage}`;
+      return `<div class="row" role="group" aria-label="${esc(label)}">
+        <div class="tid"><b>${esc(id)}</b><span title="${esc(t.title)}">${esc(t.title)}</span>${t.ui?'<em>UI</em>':''}</div>
+        ${track(T_COLS, idx, {actor, halted, complete})}
+        <div>${tag}${roundsHtml(t.reviews,'code')}</div>
+        ${halted && t.escalation ? `<div class="note">${esc(t.escalation)}</div>`:''}
+      </div>`;
+    }).join('');
+    return `<div class="group">${g==='Unplanned'?'Not in a frontier yet':`Frontier ${esc(g)} — can be built in parallel`}</div>${rows}`;
+  }).join('');
+  el.innerHTML = head + body;
+}
+
+function renderBatches(st){
+  const el = document.getElementById('batches');
+  const ents = Object.entries(st.batches||{});
+  if(!ents.length){ el.innerHTML = `<div class="empty">No batches yet. When a few tickets are ready, run <code>/wf-batch B1 T01 T02</code>.</div>`; return; }
+  const head = `<div class="cols"><div>Batch</div>${B_COLS.map(([n,w])=>`<div>${n}<small>${w}</small></div>`).join('')}<div>Status</div></div>`;
+  el.innerHTML = head + ents.map(([id,b]) => {
+    const halted = b.stage==='escalated';
+    const idx = halted ? 1 : (B_IDX[b.stage] ?? 0);
+    const actor = halted ? null : B_ACT[b.stage];
+    const complete = b.stage==='merged';
+    const tag = halted ? `<div class="tag stop"><strong>Stopped</strong></div>`
+      : b.stage==='human-gate' ? `<div class="tag"><strong>Your call</strong></div>`
+      : complete ? `<div class="tag"><strong>Merged</strong></div>`
+      : b.round ? `<div class="tag">Round <strong>${b.round.n}/${b.round.max}</strong></div>`
+      : `<div class="tag">${esc(ago(b.updated))}</div>`;
+    return `<div class="row" role="group" aria-label="${esc(id)}: ${esc(b.stage)}">
+      <div class="tid"><b>${esc(id)}</b><span>${esc((b.tickets||[]).join(' + '))}</span></div>
+      ${track(B_COLS, idx, {actor, halted, complete})}
+      <div>${tag}${roundsHtml(b.reviews,'adversarial')}</div>
+      ${halted && b.escalation ? `<div class="note">${esc(b.escalation)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderLine(st){
+  const ph = st.phases||[];
+  const el = document.getElementById('line');
+  const lastDone = ph.reduce((m,p,i)=> (p.status==='done'||p.status==='active') ? i : m, 0);
+  el.innerHTML = `<div class="fill" style="width:calc(${lastDone} * (100% / 6))"></div>` + ph.map(p =>
+    `<div class="station ${p.status}"><div class="ring" aria-hidden="true"></div><div class="name">${esc(p.label)}</div>
+     <div class="when">${p.status==='active'?'Now':p.status==='blocked'?'Blocked':p.status==='done'?esc(ago(p.updated)):''}</div></div>`).join('');
+  el.setAttribute('aria-label', 'Phases: ' + ph.map(p=>`${p.label} ${p.status}`).join(', '));
+}
+
+function renderSide(st){
+  const needs = [];
+  (st.phases||[]).forEach(p => {
+    if (p.id==='design' && p.status==='active') needs.push(['you','Design gate','Check the screens and tokens, then reply “approved”.']);
+    if (p.status==='blocked') needs.push(['stop',p.label,'Blocked — see the latest activity for what is missing.']);
+  });
+  Object.entries(st.tickets||{}).forEach(([id,t]) => t.stage==='escalated' && needs.push(['stop',`${id} · ${t.title}`, t.escalation||'Stopped. Decide how to proceed.']));
+  Object.entries(st.batches||{}).forEach(([id,b]) => {
+    if (b.stage==='human-gate') needs.push(['you',`${id} ready to ship`,'Astra passed. Read the ship brief, then tell Claude to run /wf-ship.']);
+    if (b.stage==='escalated') needs.push(['stop',`${id}`, b.escalation||'Stopped. Decide how to proceed.']);
+  });
+  document.getElementById('needs').innerHTML = needs.length
+    ? needs.map(([k,h,p])=>`<li class="${k==='stop'?'stop':''}"><b>${esc(h)}</b><p>${esc(p)}</p></li>`).join('')
+    : `<li style="border-color:var(--rule)"><p>Nothing is waiting on you.</p></li>`;
+
+  const r = st.route||{};
+  const line = (label,x) => `<div><span>${label}</span><span>${x?.via ? (x.via==='claudex'?'Claudex proxy':x.via==='codex'?'Separate Codex':'Not available') + (x.model?` · ${esc(x.model)}`:'') : 'Not checked yet'}</span></div>`;
+  document.getElementById('route').innerHTML = line('Code review (Sol)', r.code) + line('Adversarial (Astra)', r.adversarial)
+    + (r.checkedAt?`<div><span style="color:var(--muted);font-size:13px">Checked ${esc(ago(r.checkedAt))}</span></div>`:'');
+
+  const ev = (st.events||[]).slice(-60).reverse();
+  document.getElementById('log').innerHTML = ev.length ? ev.map(e => {
+    const color = e.kind==='escalation'||e.kind==='error' ? 'var(--stop)' : e.actor && ACTOR[e.actor] ? `var(${ACTOR[e.actor]})` : 'var(--muted)';
+    return `<li><time>${hhmm(e.t)}</time><i style="background:${color}"></i><span>${esc(e.msg)}</span></li>`;
+  }).join('') : `<li><span></span><span></span><span style="color:var(--muted)">No activity yet.</span></li>`;
+}
+
+function renderMeta(st, live){
+  document.getElementById('project').textContent = st.project || 'Build progress';
+  document.title = `${st.project||'Build'} · progress`;
+  const ts = Object.values(st.tickets||{});
+  const ready = ts.filter(t=>['ready','batched','merged'].includes(t.stage)).length;
+  const escs = [...ts, ...Object.values(st.batches||{})].filter(e=>e.stage==='escalated').length;
+  document.getElementById('meta').innerHTML =
+    `<span class="pill ${live?'live':''}"><i></i>${live?'Live':'Sample'} · updated ${esc(ago(st.updated))}</span>`+
+    (ts.length?`<span class="pill">${ready} of ${ts.length} tickets ready</span>`:'')+
+    (escs?`<span class="pill warn"><i></i>${escs} stopped</span>`:'');
+}
+
+function render(st, live){ renderMeta(st,live); renderLine(st); renderTickets(st); renderBatches(st); renderSide(st); }
+
+// ---------- sample data (used when the page isn't served by wf.mjs) ----------
+function sample(){
+  const t = m => new Date(Date.now()-m*60000).toISOString();
+  return {
+    project:'Sample app', updated:t(0.1),
+    route:{code:{via:'claudex',model:'gpt-6.1-sol'},adversarial:{via:'claudex',model:'gpt-6-astra'},checkedAt:t(3)},
+    phases:[['grill','Grill the idea','done',300],['spec','Spec','done',260],['tickets','Tickets','done',240],['design','Design gate','done',150],['build','Build','active',90],['ship','Ship','pending']]
+      .map(([id,label,status,m])=>({id,label,status,updated:m?t(m):null})),
+    tickets:{
+      T01:{title:'Design tokens and app shell',frontier:'F1',ui:true,stage:'batched',batch:'B1',reviews:[{kind:'code',n:1,verdict:'PASS',blocking:0,file:'reviews/T01-code-r1.md'}]},
+      T02:{title:'Accounts: sign up and sign in',frontier:'F1',stage:'batched',batch:'B1',reviews:[{kind:'code',n:1,verdict:'FAIL',blocking:3,file:'reviews/T02-code-r1.md'},{kind:'code',n:2,verdict:'PASS',blocking:0,file:'reviews/T02-code-r2.md'}]},
+      T03:{title:'Profile screen',frontier:'F2',ui:true,stage:'code-review',round:{kind:'code',n:1,max:2},blockedBy:['T01','T02'],updated:t(2)},
+      T04:{title:'Reminders API',frontier:'F2',stage:'fixing',blockedBy:['T02'],updated:t(6),reviews:[{kind:'code',n:1,verdict:'FAIL',blocking:2,file:'reviews/T04-code-r1.md'}]},
+      T05:{title:'Photo upload',frontier:'F2',ui:true,stage:'escalated',blockedBy:['T02'],escalation:'No progress: blocking issues went 2 → 2',reviews:[{kind:'code',n:1,verdict:'FAIL',blocking:2,file:''},{kind:'code',n:2,verdict:'FAIL',blocking:2,file:''}]},
+      T06:{title:'Reminder settings screen',frontier:'F3',ui:true,stage:'queued',blockedBy:['T04']},
+      T07:{title:'Weekly summary email',frontier:'F3',stage:'queued',blockedBy:['T04','T05']}
+    },
+    batches:{ B1:{tickets:['T01','T02'],stage:'adversarial-review',round:{kind:'adversarial',n:1,max:2},updated:t(4)} },
+    events:[
+      {t:t(240),msg:'Phase “Tickets” → done',kind:'phase',actor:'opus'},
+      {t:t(150),msg:'Design gate approved',kind:'info',actor:'you'},
+      {t:t(80),msg:'T02: Sol found 3 blocking issue(s) — Sonnet fixing',kind:'fail',actor:'sonnet'},
+      {t:t(55),msg:'T02: Sol passed on round 2',kind:'pass',actor:'sol'},
+      {t:t(20),msg:'T05: No progress: blocking issues went 2 → 2 — needs your decision',kind:'escalation',actor:'you'},
+      {t:t(6),msg:'T04: Sol found 2 blocking issue(s) — Sonnet fixing',kind:'fail',actor:'sonnet'},
+      {t:t(4),msg:'B1: Astra review round 1/2 started via Claudex proxy (gpt-6-astra)',kind:'review',actor:'astra'},
+      {t:t(2),msg:'T03: Sol review round 1/2 started via Claudex proxy (gpt-6.1-sol)',kind:'review',actor:'sol'}
+    ]
+  };
+}
+
+let live = false;
+async function tick(){
+  try {
+    if (location.protocol === 'file:') throw new Error('file');
+    const r = await fetch('state.json', {cache:'no-store'});
+    if (!r.ok) throw new Error(r.status);
+    const st = await r.json();
+    live = true; document.getElementById('demo').hidden = true;
+    render(st, true);
+  } catch {
+    if (!live) { document.getElementById('demo').hidden = false; render(sample(), false); }
+  }
+}
+tick(); setInterval(tick, 2000);
+</script>
+</body>
+</html>

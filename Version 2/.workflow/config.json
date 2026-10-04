@@ -1,0 +1,50 @@
+{
+  "_readme": "Edit model IDs and runner flags here, not in wf.mjs. codexModel IDs and runner flags are confirmed against codex 0.160 (Oct 2026); for a proxy, verify with `node scripts/wf.mjs route` and your proxy's /v1/models. NOTE: the `models` block below (orchestrator/worker/fixer) is documentation only — wf.mjs does not read it; those Claude models come from the subagent frontmatter and how you launch the session.",
+
+  "baseRef": "origin/main",
+  "designDir": "docs/design",
+  "dashboardPort": 4777,
+  "reviewTimeoutMs": 1500000,
+
+  "models": {
+    "orchestrator": "claude-opus-5-5",
+    "worker": "claude-sonnet-5-5",
+    "fixer": "claude-sonnet-5-5"
+  },
+
+  "reviews": {
+    "code":        { "role": "Sol",   "proxyModel": "gpt-6.1-sol", "codexModel": "gpt-6.1-sol" },
+    "adversarial": { "role": "Astra", "proxyModel": "gpt-6-astra", "codexModel": "gpt-6-astra" }
+  },
+
+  "maxRounds": { "code": 2, "adversarial": 2 },
+
+  "route": {
+    "force": null,
+    "proxyModelsPath": "/v1/models",
+    "timeoutMs": 3000
+  },
+
+  "runners": {
+    "claudex": {
+      "cmd": "claude",
+      "args": [
+        "-p", "{instruction}",
+        "--model", "{model}",
+        "--add-dir", "{promptDir}",
+        "--allowedTools", "Read", "Grep", "Glob",
+        "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)", "Bash(git status:*)"
+      ]
+    },
+    "codex": {
+      "cmd": "codex",
+      "args": [
+        "exec",
+        "-m", "{model}",
+        "-s", "read-only",
+        "-c", "model_reasoning_effort=high",
+        "{instruction}"
+      ]
+    }
+  }
+}

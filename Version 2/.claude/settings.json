@@ -1,0 +1,28 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": "node scripts/wf.mjs statusline"
+  },
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "600000",
+    "BASH_MAX_TIMEOUT_MS": "1800000"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/wf.mjs:*)",
+      "Bash(git fetch:*)",
+      "Bash(git worktree add:*)",
+      "Bash(git worktree list:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git merge --no-ff:*)",
+      "Bash(gh issue view:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(git worktree remove:*)"
+    ]
+  }
+}
