@@ -38,7 +38,7 @@ const BATCH_STAGES = ['integrating', 'adversarial-review', 'fixing', 'human-gate
 // ---------- small utils ----------
 const now = () => new Date().toISOString();
 const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-const die = (msg, code = 1) => { console.error(`wf: ${msg}`); process.exit(code); };
+const die = (msg, code = 1) => { console.error(`wflow: ${msg}`); process.exit(code); };
 const readJSON = (p, fallback) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return fallback; } };
 
 function loadConfig() {
@@ -189,12 +189,12 @@ const ROLE = { code: 'Sol', adversarial: 'Astra' };
 async function review(id, kind, opt) {
   if (!['code', 'adversarial'].includes(kind)) die('--kind must be code or adversarial');
   const cfg = loadConfig();
-  const st0 = readJSON(STATE, null) || die('no state yet — run `wf init` first');
+  const st0 = readJSON(STATE, null) || die('no state yet — run `wflow init` first');
   const isBatch = !!st0.batches[id];
   const ent = isBatch ? st0.batches[id] : st0.tickets[id];
   if (!ent) die(`unknown ticket/batch ${id}`);
   if (kind === 'code' && isBatch) die('code review is per ticket; batches get --kind adversarial');
-  if (kind === 'adversarial' && !isBatch) die('adversarial review runs per merge batch; create one with `wf batch add`');
+  if (kind === 'adversarial' && !isBatch) die('adversarial review runs per merge batch; create one with `wflow batch add`');
 
   if (['ready', 'batched', 'merged', 'human-gate'].includes(ent.stage) && !opt.again) {
     console.log(`ALREADY_PASSED ${id} is at stage ${ent.stage}. Use --again to force another round (still counts toward the cap).`);
@@ -324,7 +324,7 @@ function statusFull() {
   const st = readJSON(STATE, null);
   if (!st) {
     console.log('NOT_INITIALISED — no build in this project (.workflow/state.json absent).');
-    console.log('Start one with: wf init "<Project name>"');
+    console.log('Start one with: wflow init "<Project name>"');
     return;
   }
   const active = st.phases.find((p) => p.status === 'active');
@@ -386,7 +386,7 @@ function dash(opt) {
 }
 
 // ---------- commands ----------
-const HELP = `wf — build workflow helper
+const HELP = `wflow — build workflow helper
 
   init [project]                         create .workflow/state.json, update .gitignore
   route                                  show how Sol and Astra reviews will run right now

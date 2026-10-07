@@ -5,12 +5,12 @@ description: Bootstrap / resume the build workflow in this project — assess th
 You are the orchestrator. This command decides where the build stands and what to do next.
 It changes nothing on its own; it reports and then waits for my go.
 
-1. Run `wf status`.
+1. Run `wflow status`.
 
 2. If the first line is `NOT_INITIALISED`:
-   - There is no build in this project yet. Do NOT run `wf init` automatically.
+   - There is no build in this project yet. Do NOT run `wflow init` automatically.
    - Tell me the project looks uninitialised and ask whether I want to start a build here.
-   - Only if I say yes: run `wf init "<project name>"`, then point me to `/wf-idea <idea>`
+   - Only if I say yes: run `wflow init "<project name>"`, then point me to `/wf-idea <idea>`
      to begin (grill → spec → tickets). Stop and wait.
 
 3. If a build already exists, read the assessment and tell me — in a few lines — exactly
@@ -23,5 +23,5 @@ It changes nothing on its own; it reports and then waits for my go.
    - Tickets `ready` and enough to batch → propose `/wf-batch <BID> <IDs>`.
    - Nothing queued and nothing in flight → tell me the build looks complete or idle and ask.
 
-4. Never run `/wf-build`, `/wf-review`, `/wf-batch`, `/wf-ship`, `wf init`, or merge/push on my
+4. Never run `/wf-build`, `/wf-review`, `/wf-batch`, `/wf-ship`, `wflow init`, or merge/push on my
    behalf from here. `/wf-start` only orients us and recommends the next command.

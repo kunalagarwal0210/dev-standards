@@ -32,7 +32,7 @@ your "cold reviewer" rule. Check the current routing any time with `node scripts
 
 ## Install once, globally (recommended — no per-project copying)
 
-The commands, agents and the `wf` engine install once and then work in **every** project.
+The commands, agents and the `wflow` engine install once and then work in **every** project.
 Only each project's build *state* lives in that project, and it is created, not copied.
 
 1. **Run the installer** from the kit folder:
@@ -40,10 +40,10 @@ Only each project's build *state* lives in that project, and it is created, not 
    - macOS/Linux/Git Bash: `bash "<...>/Version 2/install.sh"`
 
    It copies the `/wf-*` commands and the `worker`/`fixer` agents into `~/.claude/`, and puts
-   a `wf` command on your PATH that runs this kit's `scripts/wf.mjs`. Open a **new** terminal
-   and confirm with `wf help`. Re-run the installer after you move or update the kit.
+   a `wflow` command on your PATH that runs this kit's `scripts/wf.mjs`. Open a **new** terminal
+   and confirm with `wflow help`. Re-run the installer after you move or update the kit.
 
-   > The `wf` shim points at the kit's own `scripts/wf.mjs` (the repo copy). If you move or
+   > The `wflow` shim points at the kit's own `scripts/wf.mjs` (the repo copy). If you move or
    > rename the kit folder, re-run the installer so the shim path is refreshed.
 
 2. **Two global config steps** (shown here because they change files that affect every
@@ -53,8 +53,8 @@ Only each project's build *state* lives in that project, and it is created, not 
    ```markdown
    ## Build workflow bootstrap
    The /wf-* build workflow is installed globally. When I start work in a git repo:
-   - Run `wf status`. If it prints NOT_INITIALISED, stay quiet unless I ask to start a build;
-     do NOT run `wf init` on your own.
+   - Run `wflow status`. If it prints NOT_INITIALISED, stay quiet unless I ask to start a build;
+     do NOT run `wflow init` on your own.
    - If a build already exists, tell me the current phase, anything escalated or at a ship
      gate, and the next command to run — then wait. Resume via `/wf-start`.
    - Never run /wf-build, /wf-review, /wf-batch, /wf-ship, push, or merge on my behalf.
@@ -73,21 +73,21 @@ Only each project's build *state* lives in that project, and it is created, not 
    }
    ```
 
-Per project, when you actually start a build: run **`/wf-start`** (or `wf init "<name>"`), then
-`/wf-idea`. Nothing is copied — `wf init` writes `.workflow/` and adds local-only paths to
+Per project, when you actually start a build: run **`/wf-start`** (or `wflow init "<name>"`), then
+`/wf-idea`. Nothing is copied — `wflow init` writes `.workflow/` and adds local-only paths to
 `.gitignore`.
 
 Still needed per build: the project's `docs/BUILD_WORKFLOW.md` + `git-worktrees.md` (philosophy,
 copy from the dev-standards repo), Matt Pocock's skills (`npx skills@latest add mattpocock/skills`
 then `/setup-matt-pocock-skills`), and a `docs/design/` pack for UI tickets. Confirm the review
-route any time with `wf route`, and open the live dashboard with `wf dash --open`.
+route any time with `wflow route`, and open the live dashboard with `wflow dash --open`.
 
 Needs Node 18 or newer, git, and the GitHub CLI (`gh`) for issues and PRs.
 
 ### Per-project install (alternative, no global change)
 If you prefer not to touch `~/.claude`, copy `.claude/`, `.workflow/` and `scripts/wf.mjs` into
 the project root and paste `CLAUDE.workflow.md` into its `CLAUDE.md`. The commands then call the
-global `wf` if present, so the global install above is still the simpler path.
+global `wflow` if present, so the global install above is still the simpler path.
 
 ## Running a build
 

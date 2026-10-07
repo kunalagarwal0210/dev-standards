@@ -1,7 +1,7 @@
 {
   "statusLine": {
     "type": "command",
-    "command": "wf statusline"
+    "command": "wflow statusline"
   },
   "env": {
     "BASH_DEFAULT_TIMEOUT_MS": "600000",
@@ -9,7 +9,7 @@
   },
   "permissions": {
     "allow": [
-      "Bash(wf:*)",
+      "Bash(wflow:*)",
       "Bash(node scripts/wf.mjs:*)",
       "Bash(git fetch:*)",
       "Bash(git worktree add:*)",
