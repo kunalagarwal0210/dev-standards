@@ -7,7 +7,7 @@ You are the orchestrator. Ticket: $ARGUMENTS
 
 Loop (the script enforces the cap from `.workflow/config.json` — default 2 rounds):
 
-1. Run `node scripts/wf.mjs review $ARGUMENTS --kind code`
+1. Run `wf review $ARGUMENTS --kind code`
    This can take many minutes — run it with a long Bash timeout (up to 30 min) or in the background and wait.
    The script decides the route itself: if this session runs under Claudex (proxy that lists the Sol model)
    it calls Sol through the proxy; otherwise it starts a separate Codex instance. Don't override it.

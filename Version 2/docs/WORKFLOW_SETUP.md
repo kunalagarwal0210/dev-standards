@@ -30,23 +30,64 @@ from github.com/kunalagarwal0210/dev-standards.
 Either way the reviewer starts with a clean context (only the spec + the diff), which is
 your "cold reviewer" rule. Check the current routing any time with `node scripts/wf.mjs route`.
 
-## Install into a project
+## Install once, globally (recommended — no per-project copying)
 
-1. Copy these into the project root: `.claude/`, `.workflow/`, `scripts/wf.mjs`.
-   If the project already has `.claude/settings.json`, merge the `statusLine`, `env`
-   and `permissions` blocks instead of overwriting.
-2. Paste `CLAUDE.workflow.md` into the project's `CLAUDE.md`.
-3. Copy `BUILD_WORKFLOW.md` and `git-worktrees.md` into `docs/` (curl commands in the
-   dev-standards README).
-4. Install Matt Pocock's skills: `npx skills@latest add mattpocock/skills`, then run
-   `/setup-matt-pocock-skills` once in the project.
-5. `node scripts/wf.mjs init "<Project name>"` — creates the state file and adds local-only
-   paths to `.gitignore`.
-6. `node scripts/wf.mjs route` — confirm Sol and Astra both show `claudex` or `codex`.
-7. In a second terminal: `node scripts/wf.mjs dash --open` — live dashboard at
-   http://127.0.0.1:4777. The Claude Code status line also shows a one-line summary.
+The commands, agents and the `wf` engine install once and then work in **every** project.
+Only each project's build *state* lives in that project, and it is created, not copied.
+
+1. **Run the installer** from the kit folder:
+   - Windows: `powershell -ExecutionPolicy Bypass -File "<...>\Version 2\install.ps1"`
+   - macOS/Linux/Git Bash: `bash "<...>/Version 2/install.sh"`
+
+   It copies the `/wf-*` commands and the `worker`/`fixer` agents into `~/.claude/`, and puts
+   a `wf` command on your PATH that runs this kit's `scripts/wf.mjs`. Open a **new** terminal
+   and confirm with `wf help`. Re-run the installer after you move or update the kit.
+
+   > The `wf` shim points at the kit's own `scripts/wf.mjs` (the repo copy). If you move or
+   > rename the kit folder, re-run the installer so the shim path is refreshed.
+
+2. **Two global config steps** (shown here because they change files that affect every
+   session — add them by hand once):
+
+   **A. Bootstrap rule — add to `~/.claude/CLAUDE.md`:**
+   ```markdown
+   ## Build workflow bootstrap
+   The /wf-* build workflow is installed globally. When I start work in a git repo:
+   - Run `wf status`. If it prints NOT_INITIALISED, stay quiet unless I ask to start a build;
+     do NOT run `wf init` on your own.
+   - If a build already exists, tell me the current phase, anything escalated or at a ship
+     gate, and the next command to run — then wait. Resume via `/wf-start`.
+   - Never run /wf-build, /wf-review, /wf-batch, /wf-ship, push, or merge on my behalf.
+   ```
+
+   **B. SessionStart hook — merge into `~/.claude/settings.json`** (stays silent unless a
+   build exists in the current project):
+   ```json
+   {
+     "hooks": {
+       "SessionStart": [
+         { "hooks": [ { "type": "command",
+           "command": "node -e \"try{require('fs').accessSync('.workflow/state.json');process.stdout.write('[build workflow] A build is in progress in this project. Run /wf-start to assess and resume.')}catch{}\"" } ] }
+       ]
+     }
+   }
+   ```
+
+Per project, when you actually start a build: run **`/wf-start`** (or `wf init "<name>"`), then
+`/wf-idea`. Nothing is copied — `wf init` writes `.workflow/` and adds local-only paths to
+`.gitignore`.
+
+Still needed per build: the project's `docs/BUILD_WORKFLOW.md` + `git-worktrees.md` (philosophy,
+copy from the dev-standards repo), Matt Pocock's skills (`npx skills@latest add mattpocock/skills`
+then `/setup-matt-pocock-skills`), and a `docs/design/` pack for UI tickets. Confirm the review
+route any time with `wf route`, and open the live dashboard with `wf dash --open`.
 
 Needs Node 18 or newer, git, and the GitHub CLI (`gh`) for issues and PRs.
+
+### Per-project install (alternative, no global change)
+If you prefer not to touch `~/.claude`, copy `.claude/`, `.workflow/` and `scripts/wf.mjs` into
+the project root and paste `CLAUDE.workflow.md` into its `CLAUDE.md`. The commands then call the
+global `wf` if present, so the global install above is still the simpler path.
 
 ## Running a build
 
@@ -54,6 +95,7 @@ Start Claude Code on Opus (`claude --model opus`, or your Claudex launcher with 
 
 | Command | What happens |
 |---|---|
+| `/wf-start` | Assesses the current build stage and recommends the next command (or offers to start a build). Changes nothing on its own. |
 | `/wf-idea <idea>` | Grill → spec → tickets in one context; tickets get registered for tracking |
 | `/wf-design-gate` | Checks `docs/design/` (tokens.json, screens/*.png, DESIGN.md); waits for you to type "approved" |
 | `/wf-plan` | Shows routing, unblocked tickets, proposes a frontier set and writes worker briefs |

@@ -301,7 +301,7 @@ async function review(id, kind, opt) {
 // ---------- status line ----------
 function statusline() {
   const st = readJSON(STATE, null);
-  if (!st) { console.log('wf · not initialised'); return; }
+  if (!st) { return; } // silent in projects with no build, so a global status line stays clean
   const phase = st.phases.find((p) => p.status === 'active') || [...st.phases].reverse().find((p) => p.status === 'done');
   const ts = Object.values(st.tickets);
   const ready = ts.filter((t) => ['ready', 'batched', 'merged'].includes(t.stage)).length;
@@ -317,6 +317,49 @@ function statusline() {
   if (esc.length) parts.push(`⚠ ${esc.join(',')} escalated`);
   if (via) parts.push(`GPT via ${via === 'claudex' ? 'Claudex' : via === 'codex' ? 'Codex' : 'none'}`);
   console.log(parts.join('  │  '));
+}
+
+// ---------- full status (readable assessment for /wf-start and /wf-status) ----------
+function statusFull() {
+  const st = readJSON(STATE, null);
+  if (!st) {
+    console.log('NOT_INITIALISED — no build in this project (.workflow/state.json absent).');
+    console.log('Start one with: wf init "<Project name>"');
+    return;
+  }
+  const active = st.phases.find((p) => p.status === 'active');
+  const lastDone = [...st.phases].reverse().find((p) => p.status === 'done');
+  const blockedPhase = st.phases.find((p) => p.status === 'blocked');
+  console.log(`Project: ${st.project}`);
+  console.log(`Phase:   ${active ? `${active.label} (active)` : blockedPhase ? `${blockedPhase.label} (blocked)` : lastDone ? `${lastDone.label} (done)` : 'not started'}`);
+
+  const ts = Object.entries(st.tickets);
+  if (ts.length) {
+    const byStage = {};
+    ts.forEach(([id, t]) => { (byStage[t.stage] ||= []).push(id); });
+    console.log('Tickets:');
+    TICKET_STAGES.forEach((s) => { if (byStage[s]) console.log(`  ${s.padEnd(13)} ${byStage[s].join(', ')}`); });
+  } else {
+    console.log('Tickets: none registered yet');
+  }
+
+  const batches = Object.entries(st.batches);
+  if (batches.length) {
+    console.log('Batches:');
+    batches.forEach(([id, b]) => console.log(`  ${id.padEnd(6)} ${b.stage}  (${(b.tickets || []).join(', ')})`));
+  }
+
+  const esc = [...Object.entries(st.tickets), ...Object.entries(st.batches)].filter(([, e]) => e.stage === 'escalated');
+  const gate = Object.entries(st.batches).filter(([, b]) => b.stage === 'human-gate');
+  if (gate.length) console.log(`WAITING ON YOU (ship gate): ${gate.map(([id]) => id).join(', ')}`);
+  if (esc.length) console.log(`ESCALATED (needs your decision): ${esc.map(([id, e]) => `${id} — ${e.escalation || 'see events'}`).join('; ')}`);
+
+  const doneish = new Set(['ready', 'batched', 'merged']);
+  const nxt = Object.entries(st.tickets).filter(([, t]) => t.stage === 'queued' && (t.blockedBy || []).every((b) => doneish.has(st.tickets[b]?.stage))).map(([id]) => id);
+  console.log(`Unblocked & queued: ${nxt.length ? nxt.join(', ') : '(none)'}`);
+
+  const via = st.route?.code?.via || st.route?.adversarial?.via;
+  if (via) console.log(`GPT reviews route via: ${via}`);
 }
 
 // ---------- dashboard ----------
@@ -357,6 +400,7 @@ const HELP = `wf — build workflow helper
   review <ID> --kind code|adversarial [--cwd path] [--again]
         exit 0 pass · 1 fail (fix and re-run) · 2 no route · 3 escalate to human · 4 reviewer error
   log "<message>" [--actor opus|sonnet|sol|astra|you]
+  status                                 readable assessment of the current build (phase, tickets, gates)
   statusline                             one-line summary (used by Claude Code status line)
   dash [--port 4777] [--open]            live progress dashboard
 `;
@@ -461,6 +505,7 @@ async function main() {
     }
     case 'review': return review(pos[0], opt.kind, opt);
     case 'log': withState((st) => event(st, pos.join(' '), 'info', opt.actor || null)); break;
+    case 'status': statusFull(); break;
     case 'statusline': statusline(); break;
     case 'dash': dash(opt); break;
     default: console.log(HELP);
