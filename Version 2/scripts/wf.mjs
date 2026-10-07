@@ -16,7 +16,7 @@ const isWin = process.platform === 'win32';
 
 // ---------- locate the MAIN repo root (works from inside any worktree) ----------
 function findRoot() {
-  const r = spawnSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], { encoding: 'utf8', shell: isWin });
+  const r = run('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], { encoding: 'utf8' });
   if (r.status === 0 && r.stdout.trim()) return path.dirname(r.stdout.trim());
   return process.cwd();
 }
@@ -110,7 +110,7 @@ const list = (v) => (v && v !== true ? String(v).split(',').map((s) => s.trim())
 
 // ---------- routing: Claudex proxy or separate Codex instance ----------
 function codexAvailable() {
-  const r = spawnSync('codex', ['--version'], { encoding: 'utf8', shell: isWin });
+  const r = run('codex', ['--version'], { encoding: 'utf8' });
   return r.status === 0;
 }
 
@@ -148,10 +148,23 @@ async function detectRoute(cfg, kind) {
   return { via: 'unavailable', model: null, why: `${p.why}; and \`codex\` CLI not found on PATH` };
 }
 
-// ---------- running a reviewer ----------
+// ---------- running a child process ----------
 function winQuote(a) {
   if (a === '') return '""';
   return /[\s"&|<>^()]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a;
+}
+
+// Run a command safely. On Windows we must go through a shell so `.cmd` shims (git, gh,
+// codex, npm, start) resolve — but passing an args array together with `shell: true` is
+// deprecated on Node 24+ (DEP0190: args are concatenated, not escaped). So on Windows we
+// build one explicitly-quoted command string and pass no array; elsewhere we pass the array
+// with no shell. Either way the args are escaped, and the deprecation warning is gone.
+function run(cmd, args, opts = {}) {
+  if (isWin) {
+    const line = [cmd, ...args.map(winQuote)].join(' ');
+    return spawnSync(line, { ...opts, shell: true });
+  }
+  return spawnSync(cmd, args, { ...opts, shell: false });
 }
 
 function runReviewer(cfg, via, vars, cwd) {
@@ -161,12 +174,11 @@ function runReviewer(cfg, via, vars, cwd) {
   // A nested `claude -p` may refuse to start if it thinks it's inside another session.
   delete env.CLAUDECODE;
   delete env.CLAUDE_CODE_ENTRYPOINT;
-  const res = spawnSync(runner.cmd, isWin ? args.map(winQuote) : args, {
-    cwd, env, encoding: 'utf8', shell: isWin,
+  return run(runner.cmd, args, {
+    cwd, env, encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
     timeout: cfg.reviewTimeoutMs || 25 * 60 * 1000,
   });
-  return res;
 }
 
 function render(tpl, vars) {
@@ -177,7 +189,7 @@ function specText(spec) {
   if (!spec) return '(no spec recorded — review against the acceptance criteria you can infer from the diff and commit messages, and flag the missing spec as a blocking issue)';
   const m = String(spec).match(/^#?(\d+)$/);
   if (m) {
-    const r = spawnSync('gh', ['issue', 'view', m[1], '--json', 'title,body', '--jq', '"# " + .title + "\\n\\n" + .body'], { cwd: ROOT, encoding: 'utf8', shell: isWin });
+    const r = run('gh', ['issue', 'view', m[1], '--json', 'title,body', '--jq', '"# " + .title + "\\n\\n" + .body'], { cwd: ROOT, encoding: 'utf8' });
     return r.status === 0 ? r.stdout : `(could not fetch GitHub issue #${m[1]}: ${r.stderr.trim()})`;
   }
   const p = path.isAbsolute(spec) ? spec : path.join(ROOT, spec);
@@ -381,7 +393,7 @@ function dash(opt) {
   }).listen(port, '127.0.0.1', () => {
     const url = `http://127.0.0.1:${port}`;
     console.log(`Build dashboard on ${url}  (Ctrl+C to stop)`);
-    if (opt.open) spawnSync(isWin ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open', isWin ? ['""', url] : [url], { shell: isWin });
+    if (opt.open) run(isWin ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open', isWin ? ['', url] : [url]);
   });
 }
 
